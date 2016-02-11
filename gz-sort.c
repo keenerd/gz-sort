@@ -297,6 +297,8 @@ int presort_pass(gzBucket* in1, gzBucket* out, miscBucket* misc, char* line_gz(g
     in1->line_counter = 0;
     // largest malloc, most likely to OOM
     buffer = malloc(sizeof(char) * (misc->presort_bytes+1));
+    if (buffer == NULL)
+        {return 1;}
     strings_len = 1024;
     strings = malloc(sizeof(char*) * (strings_len+1));
     log_i = 0;
@@ -397,7 +399,8 @@ int nway_chop_and_presort(char* in_path, char* out_path, threadBucket* t, miscBu
     out.line_counter = 0;
     misc->log_len = 1024;
     misc->line_log = malloc(sizeof(int64_t) * (misc->log_len+1));
-    presort_pass(&in1, &out, misc, &nway_line_gz);
+    if (presort_pass(&in1, &out, misc, &nway_line_gz))
+        {return 1;}
     //misc->total_lines = in1.line_counter + NWAY_WINDOW * t->thread_index;
     misc->total_lines = out.line_counter;
     // clean up
@@ -423,7 +426,8 @@ int first_pass(char* input_path, char* output_path, miscBucket* misc)
     in1.line_counter = 0;
     misc->log_len = 1024;
     misc->line_log = malloc(sizeof(int64_t) * (misc->log_len+1));
-    presort_pass(&in1, &out, misc, &load_line_gz);
+    if (presort_pass(&in1, &out, misc, &load_line_gz))
+        {return 1;}
     label2 = "presort";
     asprintf(&report, "%s line count: %ld\n%s %s", misc->label, in1.line_counter, misc->label, label2);
     misc->total_lines = in1.line_counter;
@@ -522,6 +526,8 @@ int64_t typical_segment(miscBucket* misc)
         total += misc->line_log[i];
         size++;
     }
+    if (size == 0)
+        {return -1;}
     return total / size;
 }
 
@@ -533,6 +539,7 @@ int middle_passes(char* input_path, char* output_path, miscBucket* misc)
     gzBucket out;
     int unique = 0;
     int64_t average = 0;
+    int64_t line_counter = 0;
     time_t start;
     char* report;
     while (misc->line_log[1] != -1)
@@ -550,12 +557,13 @@ int middle_passes(char* input_path, char* output_path, miscBucket* misc)
         asprintf(&report, "%s merge %ld", misc->label, average);
         report_time(report, start);
         free(report);
+        line_counter = out.line_counter;
         close_gz(&in1); close_gz(&in2); close_gz(&out);
         rename(output_path, input_path);
     }
     if (misc->unique)
         {fprintf(stdout, "removed %ld non-unique lines\n",
-            misc->total_lines - out.line_counter);}
+            misc->total_lines - line_counter);}
     return 0;
 }
 
@@ -637,13 +645,13 @@ static void* sort_thread_fn(void* arg)
 
     // first pass is a doozy
     if (nway_chop_and_presort(t->source_path, temp_path, t, misc))
-        {return 0;}
+        {return NULL;}
 
     // merge sort everything
     middle_passes(temp_path, output_path, misc);
     rename(temp_path, output_path);
 
-    return 0;
+    return NULL;
 }
 
 int main(int argc, char **argv)
@@ -720,7 +728,8 @@ int main(int argc, char **argv)
     if (!misc.nway)
     {
         asprintf(&temp_path, "%s.temp", output_path);
-        first_pass(input_path, output_path, &misc);
+        if (first_pass(input_path, output_path, &misc))
+            {return 1;}
         rename(output_path, temp_path);
 
         middle_passes(temp_path, output_path, &misc);
