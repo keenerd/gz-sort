@@ -567,15 +567,73 @@ int middle_passes(char* input_path, char* output_path, miscBucket* misc)
     return 0;
 }
 
+#define heap_parent(x) ((x-1) / 2)
+#define heap_child1(x) (x*2 + 1)
+#define heap_child2(x) (x*2 + 2)
+
+int heap_add(char* heap[], char* str, int heap_tail)
+// manually increment the tail afterwards
+{
+    int p, c;
+    c = heap_tail;
+    heap[c] = str;
+    while (c > 0)
+    {
+        p = heap_parent(c);
+        if (strcmp(heap[p], str) <= 0)
+            {break;}
+        // move it up
+        heap[c] = heap[p];
+        heap[p] = str;
+        c = p;
+    }
+    return 0;
+}
+
+int heap_pop(char* heap[], int heap_tail)
+// manually decrement the tail afterwards
+{
+    int p, c, c1, c2;
+    char* last = heap[heap_tail - 1];
+    p = 0;
+    heap[p] = last;
+    heap[heap_tail - 1] = NULL;
+    if (heap_tail == 1)
+        {return 0;}
+    while (p < heap_tail)
+    {
+        c1 = heap_child1(p);
+        c2 = heap_child2(p);
+        // cleanest hack for avoiding strcmp(NULL)
+        if (heap[c1] == NULL)
+            {c1 = p;}
+        if (heap[c2] == NULL)
+            {c2 = p;}
+        if (strcmp(heap[c1], heap[c2]) > 0)
+            {c = c2;}
+        else
+            {c = c1;}
+        if (strcmp(heap[p], heap[c]) <= 0)
+            {break;}
+        // move it down
+        heap[p] = heap[c];
+        heap[c] = last;
+        p = c;
+    }
+    return 0;
+}
+
 int nway_merge_pass(threadBucket* nway_table, char* out_path, miscBucket* misc)
 // simpler version that merges fully sorted files
 {
-    char* strs[MAX_THREADS];
+    char* strs[MAX_THREADS+1];
     gzBucket out;
     time_t start;
     char* report;
-    int i, count;
+    char* str;
+    int i, count, heap_tail;
     int64_t total_lines = 0;
+    heap_tail = 0;
     count = misc->nway;
     start = time(NULL);
     // set up all the files
@@ -589,8 +647,7 @@ int nway_merge_pass(threadBucket* nway_table, char* out_path, miscBucket* misc)
     for (i=0; i<MAX_THREADS; i++)
         {strs[i] = NULL;}
     for (i=0; i<count; i++)
-        {strs[i] = load_line_gz(nway_table[i].g);}
-    qsort(strs, count, sizeof(char*), qsort_compare);
+        {heap_add(strs, load_line_gz(nway_table[i].g), heap_tail++);}
     while (strs[0] != NULL)
     {
         if (!misc->unique)
@@ -609,10 +666,13 @@ int nway_merge_pass(threadBucket* nway_table, char* out_path, miscBucket* misc)
         {
             if (strs[0] != nway_table[i].g->str)
                 {continue;}
-            strs[0] = load_line_gz(nway_table[i].g);
+            heap_pop(strs, heap_tail--);
+            str = load_line_gz(nway_table[i].g);
+            if (str == NULL)
+                {break;}
+            heap_add(strs, str, heap_tail++);
             break;
         }
-        qsort(strs, count, sizeof(char*), qsort_compare);
     }
 
     asprintf(&report, "%i-way merge", misc->nway);
