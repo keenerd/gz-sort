@@ -99,6 +99,7 @@ int init_gz(gzBucket* g, char* path, char* mode)
     g->line_len = LINE_START;
     g->line_i = 0;
     g->buf_i = 0;
+    g->line = NULL;
     if (!(g->f = gzopen(path, mode)))
     {
         fprintf(stderr, "ERROR: %s not a .gz file\n", path) ;  
