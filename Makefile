@@ -1,7 +1,7 @@
 # gz-sort - sort multi-GB compressed files
 
 # -ggdb -std=c99
-CFLAGS := -O3 -std=gnu99 -Wall -Werror -pedantic -Wextra -pthread ${CFLAGS}
+CFLAGS := -O3 -std=gnu99 -Wall -Werror -Wno-unused-result -pedantic -Wextra -pthread ${CFLAGS}
 LDLIBS  = -lz -lpthread
 
 %.a: %.o
