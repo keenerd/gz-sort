@@ -8,15 +8,19 @@ compile: gcc -Wall -Os -o gz-sort gz-sort.c -lz
 */
 
 #define _GNU_SOURCE
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
 #include <time.h>
 #include <unistd.h>
-#include <malloc.h>
 #include <pthread.h>
 #include <zlib.h>
+
+#ifdef __GNU_LIBRARY__
+#include <malloc.h>
+#endif
 
 #define CHUNK 16384
 #define LINE_START 1024
@@ -730,7 +734,10 @@ int main(int argc, char **argv)
     misc.label = "";
     misc.log_len = 0;
     misc.presort_bytes = PRESORT_WINDOW;
+
+#ifdef __GNU_LIBRARY__
     mallopt(M_MMAP_THRESHOLD, 1);
+#endif
 
     while ((optchar = getopt(argc, argv, "huTS:P:")) != -1)
     {
