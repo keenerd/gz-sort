@@ -3,8 +3,9 @@
 # -ggdb -std=c99
 CFLAGS := -O3 -std=gnu99 -Wall -Werror -pedantic -Wextra -pthread ${CFLAGS}
 LDLIBS  = -lz -lpthread
+RM     ?= rm -f
 
-%.a: %.o
+.o.a:
 	strip -d -X $<
 	ar rvs $@ $<
 
@@ -13,7 +14,7 @@ all: gz-sort strip
 gz-sort: gz-sort.o
 
 strip: gz-sort
-	strip --strip-all $^
+	strip --strip-all gz-sort
 
 clean:
 	$(RM) *.o gz-sort
