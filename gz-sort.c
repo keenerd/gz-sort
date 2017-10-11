@@ -91,7 +91,6 @@ void show_help(void)
         "estimated disk use:\n"
         "    2x source.gz\n"
         "\n");
-    exit(0);
 }
 
 int init_gz(gzBucket* g, char* path, char* mode)
@@ -759,6 +758,8 @@ int main(int argc, char **argv)
                 break;
             case 'h':
                 show_help();
+                exit(0);
+                break;
             default:
                 show_help();
                 exit(2);
@@ -767,9 +768,9 @@ int main(int argc, char **argv)
     }
 
     if (argc != optind+2)
-        {show_help();}
+        {show_help(); exit(2);}
     if (!misc.presort_bytes)
-        {show_help();}
+        {show_help(); exit(2);}
     if (misc.nway)
         {misc.presort_bytes /= misc.nway;}
     input_path = argv[optind];
