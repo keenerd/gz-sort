@@ -1,9 +1,9 @@
 #!/bin/sh
 
 status=0
-while read script; do
+find ./tests -name '*.sh' ! -name '_*' | while read script; do
     $script || status=1
-done <<< "$(find ./tests -name '*.sh' ! -name '_*')"
+done
 
 exit $status
 
