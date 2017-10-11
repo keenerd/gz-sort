@@ -549,6 +549,11 @@ int middle_passes(char* input_path, char* output_path, miscBucket* misc)
     time_t start;
     char* report;
     int r;
+    if (misc->line_log[1] == -1)
+    {
+        // force a busywork merge for short inputs with a single buffer
+        misc->line_log[1] = 0;
+    }
     while (misc->line_log[1] != -1)
     {
         // last pass
