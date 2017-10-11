@@ -4,12 +4,16 @@ perform a merge sort over a multi-GB gz compressed file
 
 
 ### Quickstart
-
-`git clone https://github.com/keenerd/gz-sort; cd gz-sort; make; ./gz-sort -h`
-
 Needs the zlib headers and probably only builds on GNU/Linux.
+```
+$ apt-get install build-essential libz-dev
+$ git clone https://github.com/keenerd/gz-sort
+$ cd gz-sort
+$ make
+$ ./gz-sort -h
+```
 
-
+### Usage
     use: gz-sort [-u] [-S n] [-P n] source.gz dest.gz
 
     options:
