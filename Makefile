@@ -9,7 +9,7 @@ RM     ?= rm -f
 	strip -d -X $<
 	ar rvs $@ $<
 
-all: gz-sort strip
+all: strip
 
 strip: gz-sort
 	strip --strip-all gz-sort
