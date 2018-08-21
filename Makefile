@@ -11,8 +11,6 @@ RM     ?= rm -f
 
 all: gz-sort strip
 
-gz-sort: gz-sort.o
-
 strip: gz-sort
 	strip --strip-all gz-sort
 
