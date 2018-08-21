@@ -755,6 +755,10 @@ int main(int argc, char **argv)
     misc.log_len = 0;
     misc.presort_bytes = PRESORT_WINDOW;
 
+#ifdef __OpenBSD__
+    pledge("stdio rpath wpath cpath", NULL);
+#endif
+
 #ifdef __GNU_LIBRARY__
     mallopt(M_MMAP_THRESHOLD, 1);
 #endif
