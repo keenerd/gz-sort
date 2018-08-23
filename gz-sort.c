@@ -22,6 +22,10 @@ compile: gcc -Wall -Os -o gz-sort gz-sort.c -lz
 #include <malloc.h>
 #endif
 
+#ifdef __OpenBSD__
+#define NO_GZBUFFER    /* gzbuffer() not in OpenBSD zlib */
+#endif
+
 #define CHUNK 16384
 #define LINE_START 1024
 #define GZ_BUFFER 65536
@@ -110,7 +114,9 @@ int init_gz(gzBucket* g, char* path, char* mode)
         fprintf(stderr, "ERROR: %s not a .gz file\n", path) ;  
         return 1 ;  
     } 
+#ifndef NO_GZBUFFER
     gzbuffer(g->f, GZ_BUFFER);
+#endif
     g->line = malloc(g->line_len + 1);
     g->subset_counter = 0;
     g->line_counter = 0;
@@ -337,7 +343,7 @@ int presort_pass(gzBucket* in1, gzBucket* out, miscBucket* misc, char* line_gz(g
                 strings_len *= 2;
                 strings = realloc(strings, sizeof(char*) * (strings_len+1));
             }
-            strcpy(buffer+buf_i, str1);
+            memcpy(buffer+buf_i, str1, str1_len+1);
             strings[strings_i] = buffer+buf_i;
             buf_i += str1_len + 1;
             strings_i++;
@@ -371,9 +377,10 @@ int presort_pass(gzBucket* in1, gzBucket* out, miscBucket* misc, char* line_gz(g
         buf_i = 0;
         if (str1 != NULL)
         {
-            strcpy(buffer+buf_i, str1);
+            str1_len = strlen(str1);
+            memcpy(buffer+buf_i, str1, str1_len+1);
             strings[strings_i] = buffer+buf_i;
-            buf_i += strlen(str1) + 1;
+            buf_i += str1_len + 1;
             strings_i++;
         }
     }
@@ -412,7 +419,7 @@ int nway_chop_and_presort(char* in_path, char* out_path, threadBucket* t, miscBu
     misc->total_lines = out.line_counter;
     // clean up
     close_gz(&in1); close_gz(&out);
-    r = asprintf(&report, "%s line count: %ld\n%s %s", misc->label, out.line_counter, misc->label, "chop/presort");
+    r = asprintf(&report, "%s line count: %ld\n%s %s", misc->label, (long)out.line_counter, misc->label, "chop/presort");
     MEMCHECK;
     report_time(report, start);
     free(report);
@@ -438,7 +445,7 @@ int first_pass(char* input_path, char* output_path, miscBucket* misc)
     if (presort_pass(&in1, &out, misc, &load_line_gz))
         {return 1;}
     label2 = "presort";
-    r = asprintf(&report, "%s line count: %ld\n%s %s", misc->label, in1.line_counter, misc->label, label2);
+    r = asprintf(&report, "%s line count: %ld\n%s %s", misc->label, (long)in1.line_counter, misc->label, label2);
     MEMCHECK;
     misc->total_lines = in1.line_counter;
     report_time(report, start);
@@ -570,7 +577,7 @@ int middle_passes(char* input_path, char* output_path, miscBucket* misc)
         start = time(NULL);
         average = typical_segment(misc);
         merge_pass(&in1, &in2, &out, misc, unique);
-        r = asprintf(&report, "%s merge %ld", misc->label, average);
+        r = asprintf(&report, "%s merge %ld", misc->label, (long)average);
         MEMCHECK;
         report_time(report, start);
         free(report);
@@ -580,7 +587,7 @@ int middle_passes(char* input_path, char* output_path, miscBucket* misc)
     }
     if (misc->unique)
         {fprintf(stdout, "removed %ld non-unique lines\n",
-            misc->total_lines - line_counter);}
+            (long)(misc->total_lines - line_counter));}
     return 0;
 }
 
@@ -700,7 +707,7 @@ int nway_merge_pass(threadBucket* nway_table, char* out_path, miscBucket* misc)
         {total_lines += nway_table[i].misc.total_lines;}
     if (misc->unique)
         {fprintf(stdout, "removed %ld non-unique lines\n",
-            total_lines - out.line_counter);}
+            (long)(total_lines - out.line_counter));}
     // clean up all the files
     close_gz(&out);
     for (i=0; i<count; i++)
@@ -747,6 +754,10 @@ int main(int argc, char **argv)
     misc.label = "";
     misc.log_len = 0;
     misc.presort_bytes = PRESORT_WINDOW;
+
+#ifdef __OpenBSD__
+    pledge("stdio rpath wpath cpath", NULL);
+#endif
 
 #ifdef __GNU_LIBRARY__
     mallopt(M_MMAP_THRESHOLD, 1);
